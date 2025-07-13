@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tower Defense - Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2c3e50;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            margin: 0 auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        canvas {
+            border: 2px solid #34495e;
+            background: #95a5a6;
+            border-radius: 10px;
+        }
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #hp {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .heart {
+            width: 20px;
+            height: 20px;
+            background: #e74c3c;
+            display: inline-block;
+            position: relative;
+            transform: rotate(45deg);
+            margin-right: 10px;
+        }
+        .heart::before,
+        .heart::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: #e74c3c;
+            border-radius: 50%;
+            position: absolute;
+        }
+        .heart::before {
+            left: -10px;
+        }
+        .heart::after {
+            top: -10px;
+        }
+        .heart.empty {
+            background: #7f8c8d;
+        }
+        .heart.empty::before,
+        .heart.empty::after {
+            background: #7f8c8d;
+        }
+        #money {
+            color: gold;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .coin-icon {
+            width: 24px;
+            height: 24px;
+            background: gold;
+            border-radius: 50%;
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+        #nextButton {
+            padding: 10px 20px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #nextButton:hover {
+            background: #2ecc71;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.2);
+        }
+        #nextButton:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .tower-menu {
+            position: absolute;
+            right: 10px;
+            top: 60px;
+            width: 200px;
+            background: rgba(52, 73, 94, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+        .tower-button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        .tower-button:hover {
+            background: #3498db;
+            transform: translateY(-2px);
+        }
+        .tower-button.selected {
+            background: #e67e22;
+            transform: scale(1.05);
+        }
+        .tower-icon {
+            width: 30px;
+            height: 30px;
+            margin-bottom: 5px;
+        }
+        .tower-cost {
+            font-size: 14px;
+            color: gold;
+        }
+        .tower-stats {
+            font-size: 12px;
+            color: #bdc3c7;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .difficulty-info {
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #bdc3c7;
+        }
+        .round-info {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 18px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .build-point {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .build-point:hover {
+            transform: scale(1.2);
+            filter: brightness(1.5);
+        }
+        
+        .tower-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(44, 62, 80, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .tower-modal.active {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .tower-option {
+            width: 120px;
+            height: 150px;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            border: 2px solid transparent;
+        }
+        
+        .tower-option:hover {
+            transform: translateY(-5px);
+            filter: brightness(1.2);
+        }
+        
+        .tower-option.archer {
+            background: #27ae60;
+        }
+        
+        .tower-option.bomb {
+            background: #d35400;
+        }
+        
+        .tower-option.ice {
+            background: #3498db;
+        }
+        
+        .tower-option.soldier {
+            background: #2980b9;
+        }
+        
+        .tower-image {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 10px;
+        }
+        
+        .tower-name {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin: 5px 0;
+        }
+        
+        .tower-price {
+            color: gold;
+            font-size: 14px;
+        }
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .modal-overlay.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="status-bar">
+            <div id="hp"></div>
+            <div class="round-info">Round: 1</div>
+            <div id="money">
+                <div class="coin-icon"></div>
+                <span>100</span>
+            </div>
+            <button id="nextButton">Start</button>
+        </div>
+        <div class="difficulty-info"></div>
+    </div>
+
+    <div class="modal-overlay"></div>
+    <div class="tower-modal">
+        <div class="tower-option archer" data-tower="archer">
+            <img src="https://raw.githubusercontent.com/your-repo/tower-defense-assets/main/archer-tower.png" alt="Archer Tower" class="tower-image">
+            <div class="tower-name">Archer Tower</div>
+            <div class="tower-price">50g</div>
+        </div>
+        <div class="tower-option bomb" data-tower="bomb">
+            <img src="https://raw.githubusercontent.com/your-repo/tower-defense-assets/main/bomb-tower.png" alt="Bomb Tower" class="tower-image">
+            <div class="tower-name">Bomb Tower</div>
+            <div class="tower-price">80g</div>
+        </div>
+        <div class="tower-option ice" data-tower="ice">
+            <img src="https://raw.githubusercontent.com/your-repo/tower-defense-assets/main/ice-tower.png" alt="Ice Tower" class="tower-image">
+            <div class="tower-name">Ice Tower</div>
+            <div class="tower-price">80g</div>
+        </div>
+        <div class="tower-option soldier" data-tower="soldier">
+            <img src="https://raw.githubusercontent.com/your-repo/tower-defense-assets/main/soldier-tower.png" alt="Soldier Tower" class="tower-image">
+            <div class="tower-name">Soldier Tower</div>
+            <div class="tower-price">60g</div>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const GRID_SIZE = 40;
+        const MONSTER_SPEED = 1.2; // Reduced from 1.5
+        const MONSTER_BASE_HP = 7; // Reduced from 10
+        const MONSTER_BASE_DAMAGE = 1;
+        const GOLD_PER_KILL = 5;
+        
+        // AI Balancing constants
+        const TARGET_ROUND_TIME = 45000; // 45 seconds target time for each round
+        const DIFFICULTY_ADJUSTMENT_RATE = 0.15; // Reduced from 0.2
+        const MAX_DIFFICULTY_MULTIPLIER = 1.8; // Reduced from 2.0
+        const MIN_DIFFICULTY_MULTIPLIER = 0.5;
+
+        // Game state
+        let gameState = {
+            money: 150, // Increased from 100
+            hp: 7,
+            round: 0,
+            monsters: [],
+            towers: [],
+            soldiers: [],
+            buildPoints: [],
+            isRoundActive: false,
+            monstersSpawned: 0,
+            nextSpawnTime: 0,
+            path: [],
+            // AI Balancing state
+            roundStartTime: 0,
+            lastRoundTime: 0,
+            difficultyMultiplier: 0.8, // Reduced from 1.0
+            roundHistory: [],
+            trees: [] // Add trees array to game state
+        };
+
+        // Tower types
+        const TOWER_TYPES = {
+            archer: {
+                cost: 50,
+                damage: 3,
+                range: 120,
+                attackSpeed: 1000,
+                color: '#27ae60'
+            },
+            bomb: {
+                cost: 80,
+                damage: 4,
+                range: 100,
+                attackSpeed: 1500,
+                color: '#c0392b'
+            },
+            ice: {
+                cost: 80,
+                damage: 3,
+                range: 100,
+                attackSpeed: 1300,
+                color: '#3498db'
+            },
+            soldier: {
+                cost: 60,
+                damage: 2,
+                range: 80,
+                attackSpeed: 2000,
+                color: '#8e44ad'
+            }
+        };
+
+        // Tower colors
+        const TOWER_COLORS = {
+            archer: 'rgba(39, 174, 96, 0.8)',  // Green with transparency
+            bomb: 'rgba(211, 84, 0, 0.8)',     // Brown with transparency
+            ice: 'rgba(52, 152, 219, 0.8)',    // Sky Blue with transparency
+            soldier: 'rgba(41, 128, 185, 0.8)'  // Blue with transparency
+        };
+
+        // Load images
+        const IMAGES = {
+            wolf: new Image(),
+            archer: new Image(),
+            bomb: new Image(),
+            ice: new Image(),
+            soldier: new Image()
+        };
+
+        // Set image sources (using game-icons.net free icons)
+        IMAGES.archer.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iaGVpZ2h0OiA1MTJweDsgd2lkdGg6IDUxMnB4OyI+PGcgY2xhc3M9IiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSIgc3R5bGU9IiI+PHBhdGggZD0iTTI1NiAyMGMtNTQuOCAwLTEwMy41IDI1LjQtMTM1LjIgNjUuMkw5NiA2MGwtMTYgNDggNDgtMTYtMjQuNSAyNC41QzgzLjMgMTQ4LjkgNzIgMTg2LjUgNzIgMjI2LjdjMCAzMy42IDYuNyA2NS43IDE4LjggOTQuOGwzNi41LTM2LjVjLTguMi0xOC4yLTEyLjgtMzguMy0xMi44LTU5LjMgMC03OS41IDY0LjUtMTQ0IDE0NC0xNDRzMTQ0IDY0LjUgMTQ0IDE0NGMwIDIxLTQuNSA0MS0xMi44IDU5LjNsMzYuNSAzNi41YzEyLjEtMjkuMSAxOC44LTYxLjIgMTguOC05NC44IDAtNDAuMi0xMS4zLTc3LjgtMzEuNS0xMTAuMkwzODQgOTJsNDggMTYtMTYtNDgtMjQuOCAyNS4yQzM1OS41IDQ1LjQgMzEwLjggMjAgMjU2IDIwem0wIDEyOGMtNDMuOCAwLTc5LjUgMzUuNy03OS41IDc5LjUgMCAyOS41IDExLjMgNTUuOCAyOS41IDczLjVsNTAgNTAgNTAtNTBjMTguMi0xNy43IDI5LjUtNDQgMjkuNS03My41IDAtNDMuOC0zNS43LTc5LjUtNzkuNS03OS41em0wIDMyYzI2LjMgMCA0Ny41IDIxLjIgNDcuNSA0Ny41UzI4Mi4zIDI3NSAyNTYgMjc1cy00Ny41LTIxLjItNDcuNS00Ny41UzIyOS43IDE4MCAyNTYgMTgwem0tMTQ0IDk2djQ4aDQ4di00OGgtNDh6bTI0MCAwaC00OHY0OGg0OHYtNDh6IiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjEiPjwvcGF0aD48L2c+PC9zdmc+';
+        IMAGES.bomb.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iaGVpZ2h0OiA1MTJweDsgd2lkdGg6IDUxMnB4OyI+PGcgY2xhc3M9IiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSIgc3R5bGU9IiI+PHBhdGggZD0iTTI1NiAyM2MtMjQuNCAwLTQ0LjcgMTcuOS00OC40IDQxLjRsLTQ0LjMtMTEuMUwxNTIgOTRsNDAuNyAxMC4yQzE4Ny41IDk0LjQgMTgyIDgxLjcgMTgyIDY4YzAtNDAuNyAzMy4zLTc0IDc0LTc0czc0IDMzLjMgNzQgNzRjMCAxMy43LTUuNSAyNi40LTEwLjcgMzYuMkwzNjAgOTRsMTEuMS00MC43LTQ0LjMgMTEuMUMzMjMuMSA0MC45IDMwMi44IDIzIDI3OC40IDIzSDI1NnptMCAxMjhjLTg4LjQgMC0xNjAgNzEuNi0xNjAgMTYwczcxLjYgMTYwIDE2MCAxNjAgMTYwLTcxLjYgMTYwLTE2MC03MS42LTE2MC0xNjAtMTYwem0wIDMyYzcwLjcgMCAxMjggNTcuMyAxMjggMTI4cy01Ny4zIDEyOC0xMjggMTI4LTEyOC01Ny4zLTEyOC0xMjggNTcuMy0xMjggMTI4LTEyOHoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMSI+PC9wYXRoPjwvZz48L3N2Zz4=';
+        IMAGES.ice.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iaGVpZ2h0OiA1MTJweDsgd2lkdGg6IDUxMnB4OyI+PGcgY2xhc3M9IiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSIgc3R5bGU9IiI+PHBhdGggZD0iTTI1NiAxNkwxMjggOTZsMTI4IDgwLTEyOC04MEwzMiAxNzZsMTI4IDgwLTEyOC04MHY4MGwxMjggODB2LTgwbDEyOCA4MHYtODBsMTI4IDgwdi04MEwzODQgMjU2bDEyOC04MHYtODBMMzg0IDE3NmwxMjgtODBMMzg0IDE2bC0xMjggODB6IiBmaWxsPSIjZmZmZmZmIiBmaWxsLW9wYWNpdHk9IjEiPjwvcGF0aD48L2c+PC9zdmc+';
+        IMAGES.soldier.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iaGVpZ2h0OiA1MTJweDsgd2lkdGg6IDUxMnB4OyI+PGcgY2xhc3M9IiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSIgc3R5bGU9IiI+PHBhdGggZD0iTTI1NiAzMmMtNDguNiAwLTg4IDM5LjQtODggODggMCAxMy4xIDIuOSAyNS41IDggMzYuNmwtMzIgMzJ2NjUuMWw2NCA2NCA2NCA2NHY5OC4zaDQ4di05OC4zbDY0LTY0IDY0LTY0di02NS4xbC0zMi0zMmM1LjEtMTEuMSA4LTIzLjUgOC0zNi42IDAtNDguNi0zOS40LTg4LTg4LTg4em0wIDMyYzMxLjQgMCA1NiAyNC42IDU2IDU2cy0yNC42IDU2LTU2IDU2LTU2LTI0LjYtNTYtNTYgMjQuNi01NiA1Ni01NnoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMSI+PC9wYXRoPjwvZz48L3N2Zz4=';
+        IMAGES.wolf.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiBzdHlsZT0iaGVpZ2h0OiA1MTJweDsgd2lkdGg6IDUxMnB4OyI+PGcgY2xhc3M9IiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMCwwKSIgc3R5bGU9IiI+PHBhdGggZD0iTTI1NiAyNGMtNDIuNiAwLTg1LjEgOC44LTEyNC4yIDI1LjgtMzMuMiAxNC41LTU3LjcgMzUuNC03MS44IDYyLjItMTQuMSAyNi44LTE2IDU4LjYtNS40IDkzLjYgMTAuNiAzNSAzNC4yIDcyLjQgNjkuNiAxMDcuOCA3MC43IDcwLjcgMTYxLjcgOTkuMyAyMDIuNCA5OS4zIDQwLjcgMCA5MS43LTI4LjYgMTMxLjgtOTkuMyAzNS40LTM1LjQgNTktNzIuOCA2OS42LTEwNy44IDEwLjYtMzUgOC43LTY2LjgtNS40LTkzLjYtMTQuMS0yNi44LTM4LjYtNDcuNy03MS44LTYyLjJDMzQxLjEgMzIuOCAyOTguNiAyNCAyNTYgMjR6bTAgMzJjMzkuMyAwIDc4LjUgOC4xIDExNC4yIDIzLjggMjguNiAxMi41IDQ4LjggMjkuNiA1OS42IDQ5LjggMTAuOCAyMC4yIDEyLjMgNDQuNCAzLjIgNzQuNC05LjEgMzAtMzAuMyA2NC4yLTYzLjIgOTcuMi0zMy4xIDY1LjgtNzYuOCA4OS41LTExMy44IDg5LjVzLTgwLjctMjMuNy0xMTMuOC04OS41Yy0zMi45LTMzLTU0LjEtNjcuMi02My4yLTk3LjItOS4xLTMwLTcuNi01NC4yIDMuMi03NC40IDEwLjgtMjAuMiAzMS00Ny4zIDU5LjYtNDkuOEM3Ny41IDY0LjEgMTE2LjcgNTYgMTU2IDU2aDEwMHptLTEwMCA2NGMtMTcuNyAwLTMyIDE0LjMtMzIgMzJzMTQuMyAzMiAzMiAzMiAzMi0xNC4zIDMyLTMyLTE0LjMtMzItMzItMzJ6bTEwMCAwYy0xNy43IDAtMzIgMTQuMy0zMiAzMnMxNC4zIDMyIDMyIDMyIDMyLTE0LjMgMzItMzItMTQuMy0zMi0zMi0zMnptLTUwIDgwYy0yNy42IDAtNTAgMjIuNC01MCA1MHMyMi40IDUwIDUwIDUwIDUwLTIyLjQgNTAtNTAtMjIuNC01MC01MC01MHoiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMSI+PC9wYXRoPjwvZz48L3N2Zz4=';
+
+        // Monster colors for different states
+        const MONSTER_COLORS = {
+            normal: 'rgba(255, 182, 193, 0.8)',    // Light pink
+            slowed: 'rgba(173, 216, 230, 0.8)',    // Light blue
+            boss: 'rgba(255, 160, 122, 0.8)'       // Light salmon
+        };
+
+        // Add tree SVG data
+        const TREE_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cGF0aCBmaWxsPSIjMjdjYzZhIiBkPSJNMjU2IDY0YzExMCAwIDIwMCA5MCAyMDAgMjAwIDAgMTEwLTkwIDIwMC0yMDAgMjAwUzU2IDM3NCA1NiAyNjRjMC0xMTAgOTAtMjAwIDIwMC0yMDB6Ii8+PHBhdGggZmlsbD0iIzJlY2M3MSIgZD0iTTI1NiA5NmM5Mi44IDAgMTY4IDc1LjIgMTY4IDE2OHMtNzUuMiAxNjgtMTY4IDE2OFM4OCAzNTYuOCA4OCAyNjQgMTYzLjIgOTYgMjU2IDk2eiIvPjxwYXRoIGZpbGw9IiMzNGQ3N2MiIGQ9Ik0yNTYgMTI4Yzc1LjIgMCAxMzYgNjAuOCAxMzYgMTM2cy02MC44IDEzNi0xMzYgMTM2LTEzNi02MC44LTEzNi0xMzZTMTgwLjggMTI4IDI1NiAxMjh6Ii8+PC9zdmc+';
+
+        // Add tree image to IMAGES
+        IMAGES.tree = new Image();
+        IMAGES.tree.src = TREE_SVG;
+
+        // Add trees array to game state
+        gameState.trees = [];
+
+        // Function to generate random trees
+        function generateTrees() {
+            const numTrees = 15; // Number of trees to generate
+            for (let i = 0; i < numTrees; i++) {
+                let x, y;
+                let validPosition = false;
+                
+                // Keep trying until we find a valid position
+                while (!validPosition) {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() * canvas.height;
+                    validPosition = true;
+
+                    // Check distance from path
+                    for (let j = 0; j < gameState.path.length - 1; j++) {
+                        const pathStart = gameState.path[j];
+                        const pathEnd = gameState.path[j + 1];
+                        
+                        const A = x - pathStart.x;
+                        const B = y - pathStart.y;
+                        const C = pathEnd.x - pathStart.x;
+                        const D = pathEnd.y - pathStart.y;
+
+                        const dot = A * C + B * D;
+                        const len_sq = C * C + D * D;
+                        let param = -1;
+                        
+                        if (len_sq !== 0) {
+                            param = dot / len_sq;
+                        }
+
+                        let xx, yy;
+                        if (param < 0) {
+                            xx = pathStart.x;
+                            yy = pathStart.y;
+                        } else if (param > 1) {
+                            xx = pathEnd.x;
+                            yy = pathEnd.y;
+                        } else {
+                            xx = pathStart.x + param * C;
+                            yy = pathStart.y + param * D;
+                        }
+
+                        const dx = x - xx;
+                        const dy = y - yy;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 60) { // Keep trees away from path
+                            validPosition = false;
+                            break;
+                        }
+                    }
+
+                    // Check distance from build points
+                    for (const point of gameState.buildPoints) {
+                        const distance = Math.sqrt(
+                            Math.pow(x - point.x, 2) + 
+                            Math.pow(y - point.y, 2)
+                        );
+                        if (distance < 50) { // Keep trees away from build points
+                            validPosition = false;
+                            break;
+                        }
+                    }
+
+                    // Check distance from other trees
+                    for (const tree of gameState.trees) {
+                        const distance = Math.sqrt(
+                            Math.pow(x - tree.x, 2) + 
+                            Math.pow(y - tree.y, 2)
+                        );
+                        if (distance < 70) { // Keep trees away from each other
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+
+                // Add tree with random size and slight rotation
+                gameState.trees.push({
+                    x: x,
+                    y: y,
+                    size: 30 + Math.random() * 20, // Random size between 30 and 50
+                    rotation: (Math.random() - 0.5) * 0.3, // Slight random rotation
+                    bounceOffset: 0,
+                    bounceSpeed: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // Function to draw trees
+        function drawTrees() {
+            gameState.trees.forEach(tree => {
+                // Update bounce animation
+                tree.bounceOffset += tree.bounceSpeed;
+                if (Math.abs(tree.bounceOffset) >= 0.5) {
+                    tree.bounceSpeed *= -1;
+                }
+
+                ctx.save();
+                ctx.translate(tree.x, tree.y + tree.bounceOffset);
+                ctx.rotate(tree.rotation);
+                
+                // Draw tree shadow
+                ctx.beginPath();
+                ctx.ellipse(0, tree.size/4, tree.size/3, tree.size/6, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                ctx.fill();
+
+                // Draw tree
+                if (IMAGES.tree.complete) {
+                    const size = tree.size;
+                    ctx.drawImage(IMAGES.tree, -size/2, -size/2, size, size);
+                }
+                
+                ctx.restore();
+            });
+        }
+
+        // Get canvas context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Initialize game path
+        function initializePath() {
+            gameState.path = [
+                {x: 0, y: 300},
+                {x: 200, y: 300},
+                {x: 200, y: 150},
+                {x: 400, y: 150},
+                {x: 400, y: 450},
+                {x: 600, y: 450},
+                {x: 600, y: 300},
+                {x: 800, y: 300}
+            ];
+
+            // Initialize build points along the path
+            generateBuildPoints();
+        }
+
+        // Generate build points near the path
+        function generateBuildPoints() {
+            for (let i = 1; i < gameState.path.length - 1; i++) {
+                const point = gameState.path[i];
+                const offsets = [{x: -60, y: 0}, {x: 60, y: 0}, {x: 0, y: -60}, {x: 0, y: 60}];
+                
+                offsets.forEach(offset => {
+                    const buildPoint = {
+                        x: point.x + offset.x,
+                        y: point.y + offset.y,
+                        isOccupied: false
+                    };
+                    
+                    // Check if the point is within canvas bounds
+                    if (buildPoint.x > 0 && buildPoint.x < canvas.width &&
+                        buildPoint.y > 0 && buildPoint.y < canvas.height) {
+                        
+                        // Check if the point is not on the path
+                        let isOnPath = false;
+                        for (let j = 0; j < gameState.path.length - 1; j++) {
+                            const pathStart = gameState.path[j];
+                            const pathEnd = gameState.path[j + 1];
+                            
+                            // Calculate distance from point to line segment
+                            const A = buildPoint.x - pathStart.x;
+                            const B = buildPoint.y - pathStart.y;
+                            const C = pathEnd.x - pathStart.x;
+                            const D = pathEnd.y - pathStart.y;
+
+                            const dot = A * C + B * D;
+                            const len_sq = C * C + D * D;
+                            let param = -1;
+                            
+                            if (len_sq !== 0) {
+                                param = dot / len_sq;
+                            }
+
+                            let xx, yy;
+
+                            if (param < 0) {
+                                xx = pathStart.x;
+                                yy = pathStart.y;
+                            } else if (param > 1) {
+                                xx = pathEnd.x;
+                                yy = pathEnd.y;
+                            } else {
+                                xx = pathStart.x + param * C;
+                                yy = pathStart.y + param * D;
+                            }
+
+                            const dx = buildPoint.x - xx;
+                            const dy = buildPoint.y - yy;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            // If point is within 30 pixels of path, consider it on the path
+                            if (distance < 30) {
+                                isOnPath = true;
+                                break;
+                            }
+                        }
+
+                        // Only add the build point if it's not on the path
+                        if (!isOnPath) {
+                            gameState.buildPoints.push(buildPoint);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Draw the game map
+        function drawMap() {
+            // Draw grass background
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw trees behind the path
+            drawTrees();
+
+            // Draw path
+            ctx.beginPath();
+            ctx.moveTo(gameState.path[0].x, gameState.path[0].y);
+            for (let i = 1; i < gameState.path.length; i++) {
+                ctx.lineTo(gameState.path[i].x, gameState.path[i].y);
+            }
+            ctx.strokeStyle = '#95a5a6';
+            ctx.lineWidth = 40;
+            ctx.stroke();
+
+            // Draw build points
+            gameState.buildPoints.forEach(point => {
+                if (!point.isOccupied) {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 15, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.fill();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
+
+            // Draw start and end flags
+            drawFlag(gameState.path[0], '#e74c3c'); // Start flag
+            drawFlag(gameState.path[gameState.path.length - 1], '#2ecc71'); // End flag
+        }
+
+        // Draw a flag
+        function drawFlag(position, color) {
+            ctx.beginPath();
+            ctx.moveTo(position.x, position.y);
+            ctx.lineTo(position.x, position.y - 40);
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(position.x, position.y - 40);
+            ctx.lineTo(position.x + 20, position.y - 30);
+            ctx.lineTo(position.x, position.y - 20);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // Monster class
+        class Monster {
+            constructor(round) {
+                this.x = gameState.path[0].x;
+                this.y = gameState.path[0].y;
+                this.hp = (MONSTER_BASE_HP + (round * 3)) * gameState.difficultyMultiplier;
+                this.maxHp = this.hp;
+                this.damage = 1;
+                this.speed = MONSTER_SPEED * gameState.difficultyMultiplier;
+                this.pathIndex = 0;
+                this.slowed = false;
+                this.slowTimer = 0;
+                this.isBoss = false;
+                this.bounceOffset = 0;
+                this.bounceDirection = 1;
+                this.bounceSpeed = 0.1;
+            }
+
+            update() {
+                // Update bounce animation
+                this.bounceOffset += this.bounceSpeed * this.bounceDirection;
+                if (Math.abs(this.bounceOffset) >= 3) {
+                    this.bounceDirection *= -1;
+                }
+
+                if (this.pathIndex >= gameState.path.length - 1) {
+                    gameState.hp -= this.damage;
+                    return true;
+                }
+
+                const target = gameState.path[this.pathIndex + 1];
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < this.speed) {
+                    this.pathIndex++;
+                } else {
+                    const speed = this.slowed ? this.speed * 0.8 : this.speed;
+                    this.x += (dx / distance) * speed;
+                    this.y += (dy / distance) * speed;
+                }
+
+                if (this.slowed && Date.now() > this.slowTimer) {
+                    this.slowed = false;
+                }
+
+                return false;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y + this.bounceOffset);
+                
+                if (this.slowed) {
+                    ctx.globalAlpha = 0.7;
+                }
+                
+                // Draw monster background circle
+                const radius = this.isBoss ? 22 : 15;
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                
+                // Use cute colors based on monster state
+                if (this.isBoss) {
+                    ctx.fillStyle = MONSTER_COLORS.boss;
+                } else if (this.slowed) {
+                    ctx.fillStyle = MONSTER_COLORS.slowed;
+                } else {
+                    ctx.fillStyle = MONSTER_COLORS.normal;
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw monster image
+                if (IMAGES.wolf.complete) {
+                    const imageSize = this.isBoss ? 36 : 24;
+                    const offset = imageSize / 2;
+                    
+                    // Add slight rotation based on movement
+                    const angle = Math.sin(Date.now() * 0.005) * 0.1;
+                    ctx.rotate(angle);
+                    
+                    ctx.drawImage(IMAGES.wolf, -offset, -offset, imageSize, imageSize);
+                }
+                
+                ctx.restore();
+
+                // Draw HP bar with cute style
+                const hpWidth = this.isBoss ? 45 : 30;
+                const hpHeight = this.isBoss ? 6 : 4;
+                const hpX = this.x - hpWidth / 2;
+                const hpY = this.y - (this.isBoss ? 35 : 25) + this.bounceOffset;
+
+                // HP bar background with rounded corners
+                ctx.beginPath();
+                ctx.roundRect(hpX, hpY, hpWidth, hpHeight, 2);
+                ctx.fillStyle = 'rgba(192, 57, 43, 0.8)';
+                ctx.fill();
+
+                // HP bar progress with rounded corners
+                ctx.beginPath();
+                ctx.roundRect(hpX, hpY, (this.hp / this.maxHp) * hpWidth, hpHeight, 2);
+                ctx.fillStyle = 'rgba(46, 204, 113, 0.8)';
+                ctx.fill();
+            }
+        }
+
+        // Tower class
+        class Tower {
+            constructor(type, x, y) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.lastAttack = 0;
+                this.soldiers = [];
+                Object.assign(this, TOWER_TYPES[type]);
+            }
+
+            update() {
+                if (Date.now() - this.lastAttack >= this.attackSpeed) {
+                    let target = null;
+                    let minDistance = Infinity;
+
+                    for (const monster of gameState.monsters) {
+                        const distance = Math.sqrt(
+                            Math.pow(monster.x - this.x, 2) + 
+                            Math.pow(monster.y - this.y, 2)
+                        );
+
+                        if (distance <= this.range && distance < minDistance) {
+                            target = monster;
+                            minDistance = distance;
+                        }
+                    }
+
+                    if (target) {
+                        this.attack(target);
+                        this.lastAttack = Date.now();
+                    }
+                }
+
+                if (this.type === 'soldier') {
+                    this.updateSoldiers();
+                }
+            }
+
+            attack(target) {
+                switch (this.type) {
+                    case 'archer':
+                        this.shootArrow(target);
+                        break;
+                    case 'bomb':
+                        this.explode(target);
+                        break;
+                    case 'ice':
+                        this.freeze(target);
+                        break;
+                    case 'soldier':
+                        this.spawnSoldier();
+                        break;
+                }
+            }
+
+            shootArrow(target) {
+                target.hp -= this.damage;
+                
+                // Draw arrow trajectory with animation
+                const dx = target.x - this.x;
+                const dy = target.y - this.y;
+                const angle = Math.atan2(dy, dx);
+                
+                // Draw arrow
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle);
+                
+                // Arrow body
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(30, 0);
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Arrow head
+                ctx.beginPath();
+                ctx.moveTo(30, 0);
+                ctx.lineTo(20, -5);
+                ctx.lineTo(20, 5);
+                ctx.closePath();
+                ctx.fillStyle = '#f1c40f';
+                ctx.fill();
+                
+                ctx.restore();
+                
+                // Hit effect
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(241, 196, 15, 0.5)';
+                ctx.fill();
+            }
+
+            explode(target) {
+                const radius = 50;
+                gameState.monsters.forEach(monster => {
+                    const distance = Math.sqrt(
+                        Math.pow(monster.x - target.x, 2) + 
+                        Math.pow(monster.y - target.y, 2)
+                    );
+                    if (distance <= radius) {
+                        monster.hp -= this.damage;
+                    }
+                });
+
+                // Enhanced explosion effect
+                // Outer explosion circle
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(231, 76, 60, 0.3)';
+                ctx.fill();
+                
+                // Inner explosion circle
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, radius * 0.7, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(231, 76, 60, 0.5)';
+                ctx.fill();
+                
+                // Explosion rays
+                ctx.save();
+                ctx.translate(target.x, target.y);
+                for (let i = 0; i < 8; i++) {
+                    ctx.rotate(Math.PI / 4);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(radius * 1.2, 0);
+                    ctx.strokeStyle = 'rgba(231, 76, 60, 0.7)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            freeze(target) {
+                target.hp -= this.damage;
+                target.slowed = true;
+                target.slowTimer = Date.now() + 3000;
+
+                // Enhanced ice effect
+                // Outer frost circle
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 25, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                
+                // Inner frost circle
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 15, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(52, 152, 219, 0.9)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Snowflake pattern
+                ctx.save();
+                ctx.translate(target.x, target.y);
+                for (let i = 0; i < 6; i++) {
+                    ctx.rotate(Math.PI / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(0, 20);
+                    ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Add branches to each arm
+                    ctx.beginPath();
+                    ctx.moveTo(0, 10);
+                    ctx.lineTo(-5, 15);
+                    ctx.moveTo(0, 10);
+                    ctx.lineTo(5, 15);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            spawnSoldier() {
+                if (this.soldiers.length < 3) {
+                    // Spawn animation
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    
+                    // Spawn circle effect
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(142, 68, 173, 0.3)';
+                    ctx.fill();
+                    
+                    // Spawn rays
+                    for (let i = 0; i < 8; i++) {
+                        ctx.rotate(Math.PI / 4);
+                        ctx.beginPath();
+                        ctx.moveTo(15, 0);
+                        ctx.lineTo(25, 0);
+                        ctx.strokeStyle = 'rgba(142, 68, 173, 0.7)';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                    
+                    ctx.restore();
+                    
+                    // Create new soldier
+                    this.soldiers.push({
+                        x: this.x,
+                        y: this.y,
+                        hp: 10,
+                        damage: 2,
+                        target: null
+                    });
+                }
+            }
+
+            updateSoldiers() {
+                this.soldiers = this.soldiers.filter(soldier => {
+                    if (!soldier.target || soldier.target.hp <= 0) {
+                        let nearestMonster = null;
+                        let minDistance = Infinity;
+
+                        gameState.monsters.forEach(monster => {
+                            const distance = Math.sqrt(
+                                Math.pow(monster.x - soldier.x, 2) + 
+                                Math.pow(monster.y - soldier.y, 2)
+                            );
+                            if (distance < minDistance) {
+                                nearestMonster = monster;
+                                minDistance = distance;
+                            }
+                        });
+
+                        soldier.target = nearestMonster;
+                    }
+
+                    if (soldier.target) {
+                        const dx = soldier.target.x - soldier.x;
+                        const dy = soldier.target.y - soldier.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 20) {
+                            // Attack animation
+                            ctx.save();
+                            ctx.translate(soldier.x, soldier.y);
+                            const angle = Math.atan2(dy, dx);
+                            ctx.rotate(angle);
+                            
+                            // Sword slash effect
+                            ctx.beginPath();
+                            ctx.arc(0, 0, 15, -Math.PI/4, Math.PI/4);
+                            ctx.strokeStyle = 'rgba(241, 196, 15, 0.8)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                            
+                            ctx.restore();
+                            
+                            // Deal damage
+                            soldier.target.hp -= soldier.damage;
+                            soldier.hp -= soldier.target.damage;
+                        } else {
+                            // Movement trail
+                            ctx.beginPath();
+                            ctx.moveTo(soldier.x, soldier.y);
+                            soldier.x += (dx / distance) * 2;
+                            soldier.y += (dy / distance) * 2;
+                            ctx.lineTo(soldier.x, soldier.y);
+                            ctx.strokeStyle = 'rgba(41, 128, 185, 0.3)';
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    }
+
+                    return soldier.hp > 0;
+                });
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Draw range indicator when selected or hovered
+                ctx.beginPath();
+                ctx.arc(0, 0, this.range, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.stroke();
+
+                // Draw tower base circle
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.fillStyle = TOWER_COLORS[this.type];
+                ctx.fill();
+                ctx.strokeStyle = '#2c3e50';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw tower image
+                const image = IMAGES[this.type];
+                if (image.complete) { // Check if image is loaded
+                    ctx.drawImage(image, -15, -15, 30, 30);
+                }
+                
+                ctx.restore();
+
+                // Draw soldiers if this is a soldier tower
+                if (this.type === 'soldier' && this.soldiers) {
+                    this.soldiers.forEach(soldier => {
+                        ctx.save();
+                        ctx.translate(soldier.x, soldier.y);
+                        
+                        // Draw soldier circle background
+                        ctx.beginPath();
+                        ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                        ctx.fillStyle = TOWER_COLORS[this.type];
+                        ctx.fill();
+                        ctx.strokeStyle = '#2c3e50';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                        
+                        // Draw soldier image
+                        if (IMAGES.soldier.complete) {
+                            ctx.drawImage(IMAGES.soldier, -8, -8, 16, 16);
+                        }
+                        
+                        ctx.restore();
+                    });
+                }
+            }
+        }
+
+        // Game loop
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update game state
+            updateGame();
+            
+            // Draw everything
+            drawMap();
+            drawTowers();
+            drawMonsters();
+            
+            // Update UI
+            updateUI();
+            
+            // Check game over
+            if (gameState.hp <= 0) {
+                alert('Game Over!');
+                window.location.reload();
+                return;
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateGame() {
+            // Update towers
+            gameState.towers.forEach(tower => tower.update());
+
+            // Update monsters
+            gameState.monsters = gameState.monsters.filter(monster => {
+                const isDead = monster.hp <= 0;
+                const hasReachedEnd = monster.update();
+                
+                if (isDead) {
+                    gameState.money += GOLD_PER_KILL;
+                }
+                
+                return !isDead && !hasReachedEnd;
+            });
+
+            // Spawn monsters
+            if (gameState.isRoundActive && 
+                gameState.monstersSpawned < (gameState.round + 1) * 10 && 
+                Date.now() > gameState.nextSpawnTime) {
+                
+                if (gameState.round === 9) { // Boss round
+                    spawnMonster();
+                } else {
+                    spawnMonster();
+                }
+                
+                gameState.monstersSpawned++;
+                gameState.nextSpawnTime = Date.now() + 1000;
+            }
+
+            // Check round completion
+            if (gameState.isRoundActive && 
+                gameState.monstersSpawned >= (gameState.round + 1) * 10 && 
+                gameState.monsters.length === 0) {
+                endRound();
+            }
+        }
+
+        function spawnMonster() {
+            const monster = new Monster(gameState.round);
+            monster.isBoss = gameState.round === 5;  // Boss on round 5
+            if (monster.isBoss) {
+                monster.hp *= 2;
+                monster.maxHp = monster.hp;
+                monster.speed *= 0.7;
+                monster.damage = 1;
+                monster.hp *= gameState.difficultyMultiplier;
+                monster.maxHp = monster.hp;
+            }
+            gameState.monsters.push(monster);
+        }
+
+        function drawTowers() {
+            gameState.towers.forEach(tower => tower.draw());
+        }
+
+        function drawMonsters() {
+            gameState.monsters.forEach(monster => monster.draw());
+        }
+
+        function updateUI() {
+            // Update hearts display
+            const hpContainer = document.getElementById('hp');
+            hpContainer.innerHTML = '';
+            for (let i = 0; i < 7; i++) {
+                const heart = document.createElement('div');
+                heart.className = `heart ${i < gameState.hp ? '' : 'empty'}`;
+                hpContainer.appendChild(heart);
+            }
+
+            // Update money display
+            document.getElementById('money').querySelector('span').textContent = gameState.money;
+            
+            // Update round info
+            document.querySelector('.round-info').textContent = `Round: ${gameState.round}`;
+            
+            // Update next button
+            const nextButton = document.getElementById('nextButton');
+            nextButton.textContent = gameState.isRoundActive ? 'Next' : 'Start';
+            nextButton.style.display = 
+                (gameState.isRoundActive && gameState.monstersSpawned < (gameState.round + 1) * 10) 
+                ? 'none' : 'block';
+
+            // Update difficulty info
+            const difficultyInfo = document.querySelector('.difficulty-info');
+            if (gameState.lastRoundTime > 0) {
+                difficultyInfo.textContent = 
+                    `Difficulty: ${gameState.difficultyMultiplier.toFixed(2)}x | Last Round: ${Math.round(gameState.lastRoundTime/1000)}s`;
+            }
+        }
+
+        function startRound() {
+            if (gameState.round >= 5) {  // Changed from 10 to 5
+                alert('Congratulations! You won!');
+                window.location.reload();
+                return;
+            }
+
+            gameState.isRoundActive = true;
+            gameState.monstersSpawned = 0;
+            gameState.nextSpawnTime = Date.now() + 5000;
+            gameState.round++;
+            gameState.roundStartTime = Date.now();
+
+            // Log round start for debugging
+            console.log(`Round ${gameState.round} started with difficulty multiplier: ${gameState.difficultyMultiplier}`);
+        }
+
+        function endRound() {
+            gameState.isRoundActive = false;
+            
+            // Calculate round time and adjust difficulty
+            const roundTime = Date.now() - gameState.roundStartTime;
+            gameState.lastRoundTime = roundTime;
+            
+            // Store round data
+            gameState.roundHistory.push({
+                round: gameState.round,
+                time: roundTime,
+                difficulty: gameState.difficultyMultiplier
+            });
+
+            // Adjust difficulty based on performance
+            const timeDifference = (roundTime - TARGET_ROUND_TIME) / TARGET_ROUND_TIME;
+            let adjustment = -timeDifference * DIFFICULTY_ADJUSTMENT_RATE;
+            
+            // Update difficulty multiplier with bounds
+            gameState.difficultyMultiplier = Math.max(
+                MIN_DIFFICULTY_MULTIPLIER,
+                Math.min(
+                    MAX_DIFFICULTY_MULTIPLIER,
+                    gameState.difficultyMultiplier + adjustment
+                )
+            );
+
+            // Log round end for debugging
+            console.log(`Round ${gameState.round} completed in ${Math.round(roundTime/1000)}s`);
+            console.log(`New difficulty multiplier: ${gameState.difficultyMultiplier.toFixed(2)}`);
+        }
+
+        // Event listeners
+        let selectedBuildPoint = null;
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const buildPoint = gameState.buildPoints.find(point => {
+                const distance = Math.sqrt(
+                    Math.pow(point.x - x, 2) + 
+                    Math.pow(point.y - y, 2)
+                );
+                return distance < 20 && !point.isOccupied;
+            });
+
+            if (buildPoint) {
+                selectedBuildPoint = buildPoint;
+                document.querySelector('.modal-overlay').classList.add('active');
+                document.querySelector('.tower-modal').classList.add('active');
+            }
+        });
+
+        document.querySelector('.modal-overlay').addEventListener('click', () => {
+            closeModal();
+        });
+
+        document.querySelectorAll('.tower-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const towerType = option.dataset.tower;
+                const towerCost = TOWER_TYPES[towerType].cost;
+
+                if (gameState.money >= towerCost && selectedBuildPoint) {
+                    selectedBuildPoint.isOccupied = true;
+                    gameState.towers.push(new Tower(towerType, selectedBuildPoint.x, selectedBuildPoint.y));
+                    gameState.money -= towerCost;
+                }
+                closeModal();
+            });
+        });
+
+        function closeModal() {
+            document.querySelector('.modal-overlay').classList.remove('active');
+            document.querySelector('.tower-modal').classList.remove('active');
+            selectedBuildPoint = null;
+        }
+
+        // Add back the nextButton event listener
+        document.getElementById('nextButton').addEventListener('click', () => {
+            if (!gameState.isRoundActive) {
+                startRound();
+            } else {
+                gameState.nextSpawnTime = Date.now();
+            }
+        });
+
+        // Initialize game
+        initializePath();
+        generateTrees(); // Add this line to generate trees
+        gameLoop();
+    </script>
+</body>
+</html>
